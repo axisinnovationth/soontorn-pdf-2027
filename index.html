@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="th" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>SOONTORN-PDF-2027</title>
+<meta name="description" content="SOONTORN-PDF-2027 — โปรแกรม PDF และถอดปริมาณงาน AXIS INNOVATION CO.,LTD.">
+<meta name="theme-color" content="#0b1a5c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SOONTORN-PDF">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ===== หน้าต้อนรับ ===== -->
+<div id="splash">
+  <div class="splash-card">
+    <img src="logo/axis-logo-601221-006.jpg" alt="AXIS INNOVATION" class="splash-logo">
+    <h1>ยินดีต้อนรับสู่ <span>SOONTORN-PDF-2027</span></h1>
+    <p>โปรแกรมจัดการไฟล์ PDF และถอดปริมาณงาน สำหรับใช้งานภายในองค์กร</p>
+    <p class="splash-company">AXIS INNOVATION CO.,LTD.</p>
+    <div class="splash-bar"><div></div></div>
+    <button id="splashStart" class="btn-primary">เริ่มใช้งาน</button>
+  </div>
+</div>
+
+<div id="app">
+  <!-- ===== แถบบน ===== -->
+  <header id="topbar">
+    <button class="icon-btn" id="btnMenu" title="เปิด/ปิดเมนูด้านข้าง" data-icon="menu"></button>
+    <img src="logo/axis-logo-601221-006.jpg" class="top-logo" alt="logo">
+    <div class="app-name">SOONTORN-PDF-2027</div>
+    <div id="tabs"></div>
+    <div class="top-right">
+      <label class="theme-pick" title="เปลี่ยนธีม">
+        <span data-icon="theme"></span>
+        <select id="themeSelect">
+          <option value="light">ธีมสว่าง</option>
+          <option value="dark">ธีมมืด</option>
+          <option value="axis">ธีม AXIS</option>
+        </select>
+      </label>
+      <button class="icon-btn" id="btnRibbon" title="ย่อ/ขยายแถบเครื่องมือ" data-icon="chevUp"></button>
+      <button class="icon-btn" id="btnFull" title="ขยายเต็มจอ / ย่อกลับ" data-icon="expand"></button>
+    </div>
+  </header>
+
+  <!-- ===== แถบเครื่องมือ ===== -->
+  <nav id="ribbon">
+    <div class="group">
+      <div class="g-btns">
+        <button data-act="open" data-icon="open" title="เปิดไฟล์ PDF (Ctrl+O)">เปิด PDF</button>
+        <button data-act="save" data-icon="save" title="บันทึก PDF พร้อมเส้นวัด (Ctrl+S)">บันทึก</button>
+        <button data-act="saveAs" data-icon="saveAs" title="บันทึกเป็นไฟล์ใหม่">บันทึกเป็น</button>
+        <button data-act="deleteFile" data-icon="trash" title="ลบไฟล์ออกจากรายการ">ลบไฟล์</button>
+      </div>
+      <div class="g-name">ไฟล์</div>
+    </div>
+    <div class="group">
+      <div class="g-btns">
+        <button data-act="combine" data-icon="combine" title="รวมไฟล์ PDF ที่ติ๊กเลือก">รวม PDF</button>
+        <button data-act="deletePage" data-icon="pageX" title="ลบหน้าปัจจุบัน">ลบหน้า</button>
+        <button data-act="rotatePage" data-icon="rotate" title="หมุนหน้าปัจจุบัน 90°">หมุนหน้า</button>
+      </div>
+      <div class="g-name">เอกสาร</div>
+    </div>
+    <div class="group">
+      <div class="g-btns">
+        <button data-act="exportExcel" data-icon="excel" title="ส่งออกข้อความใน PDF เป็น Excel">PDF → Excel</button>
+        <button data-act="exportWord" data-icon="word" title="ส่งออกข้อความใน PDF เป็น Word">PDF → Word</button>
+        <button data-act="report" data-icon="report" title="รายงานผลการวัดเป็น Excel">รายงาน Excel</button>
+      </div>
+      <div class="g-name">ส่งออก</div>
+    </div>
+    <div class="group">
+      <div class="g-btns">
+        <button data-tool="select" data-icon="pointer" title="เลือก/เลื่อน (V)" class="active">เลือก</button>
+        <button data-tool="calibrate" data-icon="ruler" title="ตั้งสเกลจากระยะที่รู้ค่า">ตั้งสเกล</button>
+        <button data-tool="length" data-icon="length" title="วัดความยาว 2 จุด (L)">ความยาว</button>
+        <button data-tool="polyline" data-icon="polyline" title="วัดความยาวต่อเนื่อง (P)">ระยะต่อเนื่อง</button>
+        <button data-tool="area" data-icon="area" title="คิดพื้นที่ (A)">พื้นที่</button>
+        <button data-tool="count" data-icon="count" title="นับจำนวน (C)">นับจำนวน</button>
+      </div>
+      <div class="g-name">ถอดปริมาณ</div>
+    </div>
+    <div class="group">
+      <div class="g-btns">
+        <button data-act="zoomOut" data-icon="zoomOut" title="ย่อ (Ctrl -)">ย่อ</button>
+        <button data-act="zoomIn" data-icon="zoomIn" title="ขยาย (Ctrl +)">ขยาย</button>
+        <button data-act="fitPage" data-icon="fit" title="พอดีหน้า">พอดีหน้า</button>
+        <button data-act="view3d" data-icon="cube" title="เปิดหน้าต่างโมเดล 3D" id="btn3d">โมเดล 3D</button>
+      </div>
+      <div class="g-name">มุมมอง</div>
+    </div>
+    <div class="group">
+      <div class="g-btns">
+        <button data-act="saveProject" data-icon="disk" title="บันทึกงานวัดทั้งหมด (.json)">บันทึกงานวัด</button>
+        <button data-act="openProject" data-icon="folderIn" title="เปิดงานวัดที่บันทึกไว้">เปิดงานวัด</button>
+      </div>
+      <div class="g-name">โครงการ</div>
+    </div>
+  </nav>
+
+  <main id="main">
+    <!-- ===== แผงซ้าย ===== -->
+    <aside id="left" class="side">
+      <div class="panel">
+        <div class="panel-h">
+          <span>ไฟล์ที่เปิด</span>
+          <span class="panel-tools">
+            <button class="mini" id="fileUp" title="เลื่อนขึ้น" data-icon="up"></button>
+            <button class="mini" id="fileDown" title="เลื่อนลง" data-icon="down"></button>
+            <button class="mini" id="fileAll" title="เลือก/ไม่เลือกทั้งหมด" data-icon="check"></button>
+          </span>
+        </div>
+        <ul id="fileList" class="list"></ul>
+        <div class="hint">ติ๊ก ☑ ไฟล์ที่ต้องการแล้วกด "รวม PDF" เพื่อรวมตามลำดับในรายการ</div>
+      </div>
+      <div class="panel grow">
+        <div class="panel-h"><span>หน้า</span><span id="pageCountLbl" class="muted"></span></div>
+        <div id="thumbs"></div>
+      </div>
+    </aside>
+
+    <!-- ===== พื้นที่แสดงผล ===== -->
+    <section id="center">
+      <div id="viewer" tabindex="0">
+        <div id="empty">
+          <img src="logo/axis-logo-601221-006.jpg" alt="">
+          <h2>ลากไฟล์ PDF มาวางที่นี่ หรือกด "เปิด PDF"</h2>
+          <p>เปิดได้หลายไฟล์พร้อมกัน รวมไฟล์ ลบหน้า วัดความยาว คิดพื้นที่ นับจำนวน และส่งออกเป็น Excel / Word</p>
+          <button class="btn-primary" data-act="open">เปิดไฟล์ PDF</button>
+        </div>
+        <div id="pageWrap">
+          <canvas id="pdfCanvas"></canvas>
+          <canvas id="overlay"></canvas>
+        </div>
+      </div>
+
+      <div id="view3d" hidden>
+        <div class="v3d-bar">
+          <button data-3d="open" data-icon="open">เปิดโมเดล (GLB/OBJ/STL)</button>
+          <button data-3d="left" data-icon="rotL">หมุนซ้าย</button>
+          <button data-3d="right" data-icon="rotR">หมุนขวา</button>
+          <button data-3d="up" data-icon="up">ก้ม</button>
+          <button data-3d="down" data-icon="down">เงย</button>
+          <button data-3d="auto" data-icon="rotate" id="btnAuto">หมุนอัตโนมัติ</button>
+          <button data-3d="top">มุมบน</button>
+          <button data-3d="front">ด้านหน้า</button>
+          <button data-3d="side">ด้านข้าง</button>
+          <button data-3d="iso">มุม ISO</button>
+          <button data-3d="wire">โครงลวด</button>
+          <button data-3d="reset" data-icon="fit">รีเซ็ต</button>
+          <button data-3d="close" data-icon="x">ปิด 3D</button>
+        </div>
+        <div id="v3dCanvas"></div>
+        <div class="v3d-hint">ลากเมาส์ซ้าย = หมุน · ล้อเมาส์ = ย่อ/ขยาย · ลากเมาส์ขวา = เลื่อน · <span id="modelName">โมเดลตัวอย่าง</span></div>
+      </div>
+
+      <div id="drawBar" hidden>
+        <span id="drawInfo"></span>
+        <button data-draw="undo" title="ลบจุดล่าสุด">↶ ย้อนจุด</button>
+        <button data-draw="ortho" id="btnOrtho" title="ล็อกเส้นแนวตั้ง/แนวนอน">⊥ ล็อกแนว</button>
+        <button data-draw="cancel" title="ยกเลิกการวัดนี้ (Esc)">✕ ยกเลิก</button>
+        <button data-draw="finish" class="primary" title="จบการวัด (Enter)">✓ จบการวัด</button>
+      </div>
+
+      <div id="pageNav">
+        <button class="mini" data-act="prev" data-icon="up" title="หน้าก่อน"></button>
+        <input id="pageInput" type="number" min="1" value="1">
+        <span id="pageTotal">/ 0</span>
+        <button class="mini" data-act="next" data-icon="down" title="หน้าถัดไป"></button>
+        <span class="sep"></span>
+        <button class="mini" data-act="zoomOut" data-icon="zoomOut" title="ย่อ"></button>
+        <span id="zoomLbl">100%</span>
+        <button class="mini" data-act="zoomIn" data-icon="zoomIn" title="ขยาย"></button>
+      </div>
+    </section>
+
+    <!-- ===== แผงขวา ===== -->
+    <aside id="right" class="side">
+      <div class="panel">
+        <div class="panel-h"><span>สเกลแบบ</span></div>
+        <div class="scale-box">
+          <select id="scaleSelect">
+            <option value="">— เลือกสเกลกระดาษ —</option>
+            <option value="1">1:1</option><option value="20">1:20</option><option value="25">1:25</option>
+            <option value="50">1:50</option><option value="75">1:75</option><option value="100">1:100</option>
+            <option value="125">1:125</option><option value="150">1:150</option><option value="200">1:200</option>
+            <option value="250">1:250</option><option value="300">1:300</option><option value="500">1:500</option>
+            <option value="1000">1:1000</option>
+          </select>
+          <div id="scaleInfo" class="muted">ยังไม่ได้ตั้งสเกล (ใช้ 1:100)</div>
+          <div class="hint">แนะนำ: ใช้ "ตั้งสเกล" ลากเส้นทับระยะที่ทราบค่าในแบบ แม่นยำกว่าเลือกจากรายการ</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-h"><span>สรุปไฟล์นี้</span></div>
+        <div id="summary" class="summary"></div>
+      </div>
+      <div class="panel grow">
+        <div class="panel-h">
+          <span>รายการวัด</span>
+          <span class="panel-tools">
+            <label class="muted small"><input type="checkbox" id="onlyPage"> เฉพาะหน้านี้</label>
+            <button class="mini" id="clearMeas" title="ลบรายการวัดทั้งหมดของไฟล์นี้" data-icon="trash"></button>
+          </span>
+        </div>
+        <div id="measList"></div>
+      </div>
+    </aside>
+  </main>
+
+  <footer id="status">
+    <span id="stTool">เครื่องมือ: เลือก</span>
+    <span id="stHint">เปิดไฟล์ PDF เพื่อเริ่มงาน</span>
+    <span id="stPos"></span>
+    <span class="muted">© AXIS INNOVATION CO.,LTD.</span>
+  </footer>
+</div>
+
+<div id="toast"></div>
+<div id="busy" hidden><div class="spinner"></div><div id="busyMsg">กำลังทำงาน...</div></div>
+
+<!-- กล่องโต้ตอบ -->
+<dialog id="dlg">
+  <form method="dialog">
+    <h3 id="dlgTitle"></h3>
+    <div id="dlgBody"></div>
+    <div class="dlg-btns">
+      <button value="ok" class="btn-primary" id="dlgOk">ตกลง</button>
+      <button value="cancel" class="btn">ยกเลิก</button>
+    </div>
+  </form>
+</dialog>
+
+<input type="file" id="filePdf" accept="application/pdf,.pdf" multiple hidden>
+<input type="file" id="fileModel" accept=".glb,.gltf,.obj,.stl" hidden>
+<input type="file" id="fileProject" accept=".json" hidden>
+
+<script src="lib/pdf.min.js"></script>
+<script src="lib/pdf.worker.min.js"></script>
+<script src="lib/pdf-lib.min.js"></script>
+<script src="lib/xlsx.full.min.js"></script>
+<script src="lib/docx.iife.js"></script>
+<script src="lib/three.min.js"></script>
+<script src="lib/OrbitControls.js"></script>
+<script src="lib/GLTFLoader.js"></script>
+<script src="lib/OBJLoader.js"></script>
+<script src="lib/STLLoader.js"></script>
+<script src="lib/logo-data.js"></script>
+<script src="app.js"></script>
+<script src="viewer3d.js"></script>
+</body>
+</html>
