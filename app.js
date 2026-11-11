@@ -9,6 +9,7 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const { PDFDocument, degrees } = PDFLib;
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
 
+const APP_VERSION = '1.1.0';
 const PT_M = 0.0254 / 72;               // 1 point = 0.3528 มม. บนกระดาษ
 const DEFAULT_RATIO = 100;               // ถ้ายังไม่ตั้งสเกล ใช้ 1:100
 const TYPE_TH = { length: 'ความยาว', polyline: 'ระยะต่อเนื่อง', area: 'พื้นที่', count: 'นับจำนวน', calibrate: 'ตั้งสเกล' };
@@ -26,6 +27,7 @@ const TOOL_HINT = {
 /* ---------- ไอคอน ---------- */
 const ICONS = {
   menu: '<path d="M3 6h18M3 12h18M3 18h18"/>',
+  printer: '<path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/>',
   open: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
   folderIn: '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 10v6M9 13l3 3 3-3"/>',
   save: '<path d="M5 3h11l3 3v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v5h8V3M7 21v-7h10v7"/>',
@@ -96,7 +98,7 @@ function ask(title, bodyHtml, okText = 'ตกลง') {
   $('#dlgTitle').textContent = title;
   $('#dlgBody').innerHTML = bodyHtml;
   $('#dlgOk').textContent = okText;
-  dlg.returnValue = '';
+  dlg.returnValue = ''; $('#dlgAlt').hidden = true;
   dlg.showModal();
   const first = $('#dlgBody input, #dlgBody select');
   if (first) { first.focus(); first.select && first.select(); }
@@ -344,7 +346,7 @@ function measValue(m) {
 const valText = m => { const r = measValue(m); return (m.type === 'count' ? r.v : fmt(r.v)) + ' ' + r.unit; };
 
 function label(ctx, text, x, y, u, color) {
-  ctx.font = `600 ${12 * u}px "Leelawadee UI", Tahoma, sans-serif`;
+  ctx.font = `600 ${12 * u}px "Leelawadee UI", Thonburi, Tahoma, sans-serif`;
   const w = ctx.measureText(text).width, h = 16 * u, pad = 4 * u;
   ctx.fillStyle = 'rgba(255,255,255,.92)';
   ctx.strokeStyle = color; ctx.lineWidth = 1 * u;
@@ -961,6 +963,7 @@ async function openProject(file) {
    ========================================================= */
 const ACTIONS = {
   open: () => $('#filePdf').click(),
+  print: () => window.openPrint && window.openPrint(),
   save: () => saveActive(false),
   saveAs: () => saveActive(true),
   deleteFile: () => active() ? removeFile(S.activeId) : toast('ยังไม่มีไฟล์'),
@@ -1092,6 +1095,7 @@ function bind() {
     const typing = /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) || $('#dlg').open;
     if (e.ctrlKey && e.key.toLowerCase() === 's') { e.preventDefault(); saveActive(e.shiftKey); return; }
     if (e.ctrlKey && e.key.toLowerCase() === 'o') { e.preventDefault(); ACTIONS.open(); return; }
+    if (e.ctrlKey && e.key.toLowerCase() === 'p') { e.preventDefault(); ACTIONS.print(); return; }
     if (e.ctrlKey && (e.key === '+' || e.key === '=')) { e.preventDefault(); ACTIONS.zoomIn(); return; }
     if (e.ctrlKey && e.key === '-') { e.preventDefault(); ACTIONS.zoomOut(); return; }
     if (typing) return;
@@ -1157,4 +1161,25 @@ window.__openFromShell = async list => {
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
     navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW:', e));
   }
+  $('#appVer').textContent = 'v' + APP_VERSION;
+  checkUpdate();
 })();
+
+/* ---------- แจ้งเตือนเวอร์ชันใหม่ (เฉพาะโปรแกรมที่ติดตั้งบนคอมพิวเตอร์) ---------- */
+async function checkUpdate() {
+  const installed = new URLSearchParams(location.search).get('appver');
+  if (!installed) return;                      // เวอร์ชันเว็บ/iPad อัปเดตเองอยู่แล้ว
+  const cmp = (a, b) => { const x = a.split('.').map(Number), y = b.split('.').map(Number); for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) - (y[i] || 0); } return 0; };
+  try {
+    const r = await fetch('https://axisinnovationth.github.io/soontorn-pdf-2027/version.json?t=' + Date.now(), { cache: 'no-store' });
+    const j = await r.json();
+    if (!j.version || cmp(j.version, installed) <= 0) return;
+    let skip = '';
+    try { skip = localStorage.getItem('spdf-skip-ver') || ''; } catch (_) {}
+    if (skip === j.version) return;
+    $('#updateMsg').textContent = `มีเวอร์ชันใหม่ v${j.version} (ที่ใช้อยู่ v${installed})${j.notes ? ' — ' + j.notes : ''}`;
+    $('#updateLink').href = j.download;
+    $('#updateBar').hidden = false;
+    $('#updateClose').onclick = () => { $('#updateBar').hidden = true; try { localStorage.setItem('spdf-skip-ver', j.version); } catch (_) {} };
+  } catch (_) { /* ไม่มีอินเทอร์เน็ต — ข้าม */ }
+}

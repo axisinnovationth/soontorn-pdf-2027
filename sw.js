@@ -1,8 +1,8 @@
 /* SOONTORN-PDF-2027 — เก็บไฟล์โปรแกรมไว้ในเครื่อง เพื่อใช้งานแบบออฟไลน์ */
-const VERSION = 'spdf-2027-v1';
+const VERSION = 'spdf-2027-v2';
 const FILES = [
   './',
-  'index.html', 'app.js', 'viewer3d.js', 'styles.css', 'manifest.webmanifest',
+  'index.html', 'app.js', 'viewer3d.js', 'print.js', 'styles.css', 'manifest.webmanifest',
   "icons/apple-touch-icon.png",
   "icons/icon-192.png",
   "icons/icon-512.png",
@@ -28,7 +28,8 @@ self.addEventListener('activate', e => {
 });
 // ใช้ไฟล์ในเครื่องก่อน แล้วอัปเดตจากเว็บเบื้องหลัง (ได้เวอร์ชันใหม่เมื่อเปิดครั้งถัดไป)
 self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
+  const u = new URL(e.request.url);
+  if (e.request.method !== 'GET' || u.origin !== location.origin || u.pathname.endsWith('version.json')) return;
   e.respondWith(caches.open(VERSION).then(async cache => {
     const hit = await cache.match(e.request, { ignoreSearch: true });
     const net = fetch(e.request).then(res => { if (res.ok) cache.put(e.request, res.clone()); return res; }).catch(() => hit);

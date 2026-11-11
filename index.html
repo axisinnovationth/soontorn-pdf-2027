@@ -57,6 +57,7 @@
         <button data-act="open" data-icon="open" title="เปิดไฟล์ PDF (Ctrl+O)">เปิด PDF</button>
         <button data-act="save" data-icon="save" title="บันทึก PDF พร้อมเส้นวัด (Ctrl+S)">บันทึก</button>
         <button data-act="saveAs" data-icon="saveAs" title="บันทึกเป็นไฟล์ใหม่">บันทึกเป็น</button>
+        <button data-act="print" data-icon="printer" title="ปริ้น / ส่งเป็น PDF ไป Notability (Ctrl+P)">ปริ้น</button>
         <button data-act="deleteFile" data-icon="trash" title="ลบไฟล์ออกจากรายการ">ลบไฟล์</button>
       </div>
       <div class="g-name">ไฟล์</div>
@@ -220,10 +221,16 @@
     <span id="stTool">เครื่องมือ: เลือก</span>
     <span id="stHint">เปิดไฟล์ PDF เพื่อเริ่มงาน</span>
     <span id="stPos"></span>
-    <span class="muted">© AXIS INNOVATION CO.,LTD.</span>
+    <span class="muted"><span id="appVer"></span> · © AXIS INNOVATION CO.,LTD.</span>
   </footer>
 </div>
 
+<div id="updateBar" hidden>
+  <span id="updateMsg"></span>
+  <a id="updateLink" target="_blank" rel="noopener">ดาวน์โหลดเวอร์ชันใหม่</a>
+  <button id="updateClose" title="ปิด">✕</button>
+</div>
+<div id="printArea"></div>
 <div id="toast"></div>
 <div id="busy" hidden><div class="spinner"></div><div id="busyMsg">กำลังทำงาน...</div></div>
 
@@ -234,6 +241,7 @@
     <div id="dlgBody"></div>
     <div class="dlg-btns">
       <button value="ok" class="btn-primary" id="dlgOk">ตกลง</button>
+      <button value="alt" class="btn" id="dlgAlt" hidden>อื่น ๆ</button>
       <button value="cancel" class="btn">ยกเลิก</button>
     </div>
   </form>
@@ -256,5 +264,6 @@
 <script src="lib/logo-data.js"></script>
 <script src="app.js"></script>
 <script src="viewer3d.js"></script>
+<script src="print.js"></script>
 </body>
 </html>

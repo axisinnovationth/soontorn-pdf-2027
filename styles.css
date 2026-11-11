@@ -51,7 +51,7 @@
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
 body {
-  font-family: "Leelawadee UI", "Segoe UI", Tahoma, sans-serif;
+  font-family: "Leelawadee UI", "Segoe UI", Thonburi, "Sukhumvit Set", Tahoma, sans-serif;
   font-size: 13px;
   background: var(--bg);
   color: var(--text);
@@ -279,4 +279,23 @@ body.touch .v3d-bar button { padding: 9px 12px; }
 body.touch #ribbon { -webkit-overflow-scrolling: touch; }
 @supports (padding: env(safe-area-inset-bottom)) {
   #status { padding-bottom: env(safe-area-inset-bottom); height: calc(26px + env(safe-area-inset-bottom)); }
+}
+
+/* ===== แจ้งเตือนเวอร์ชันใหม่ ===== */
+#updateBar { position: fixed; top: 54px; left: 50%; transform: translateX(-50%); z-index: 55; display: flex; gap: 12px; align-items: center;
+  background: #0b1a5c; color: #fff; padding: 10px 14px; border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,.3); max-width: calc(100vw - 24px); }
+#updateBar[hidden] { display: none; }
+#updateBar a { color: #fff; background: #7ab51d; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-weight: 600; white-space: nowrap; }
+#updateBar button { background: none; border: 0; color: #fff; cursor: pointer; font-size: 15px; }
+#dlgAlt[hidden] { display: none; }
+
+/* ===== การพิมพ์ ===== */
+#printArea { display: none; }
+@media print {
+  html, body { height: auto !important; overflow: visible !important; background: #fff !important; }
+  body > *:not(#printArea) { display: none !important; }
+  #printArea { display: block !important; }
+  .pp { overflow: hidden; page-break-after: always; break-after: page; }
+  .pp:last-child { page-break-after: auto; break-after: auto; }
+  .pp img { width: 100%; height: 100%; object-fit: contain; display: block; }
 }
