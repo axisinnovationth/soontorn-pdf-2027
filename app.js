@@ -9,7 +9,7 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const { PDFDocument, degrees } = PDFLib;
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
 
-const APP_VERSION = '1.1.4';
+const APP_VERSION = '1.1.5';
 const PT_M = 0.0254 / 72;               // 1 point = 0.3528 มม. บนกระดาษ
 const DEFAULT_RATIO = 100;               // ถ้ายังไม่ตั้งสเกล ใช้ 1:100
 const TYPE_TH = { length: 'ความยาว', polyline: 'ระยะต่อเนื่อง', area: 'พื้นที่', count: 'นับจำนวน', calibrate: 'ตั้งสเกล' };
@@ -516,16 +516,25 @@ function onPointerDown(e) {
   try { $('#overlay').setPointerCapture(e.pointerId); } catch (_) {}
   touchPts.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (touchPts.size === 2) {
-    // สองนิ้ว = ย่อ/ขยาย และเลื่อนหน้าไปพร้อมกัน
+    // สองนิ้ว = ย่อ/ขยาย และเลื่อนหน้าไปพร้อมกัน — ถ้านิ้วแรกเพิ่งปักหมุดไป ให้เอาหมุดนั้นออก
+    if (tap && tap.added && S.draft) { S.draft.pts.pop(); if (!S.draft.pts.length) S.draft = null; S.cursor = null; drawOverlay(); }
     const [a, b] = [...touchPts.values()];
     pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: S.zoom, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
     tap = null; pan = null; return;
   }
   if (touchPts.size > 2) return;
   const v = $('#viewer');
-  tap = { x: e.clientX, y: e.clientY, moved: false };
-  // โหมดวัด: นิ้วเดียวลากได้เลย (ลากเป็นเส้น) ส่วนโหมดเลือก: นิ้วเดียวลากเพื่อเลื่อนหน้า
-  pan = S.tool === 'select' ? { x: e.clientX, y: e.clientY, sl: v.scrollLeft, st: v.scrollTop, touch: true } : null;
+  tap = { x: e.clientX, y: e.clientY, moved: false, added: false };
+  if (S.tool === 'select') {
+    // โหมดเลือก: นิ้วเดียวลากเพื่อเลื่อนหน้า
+    pan = { x: e.clientX, y: e.clientY, sl: v.scrollLeft, st: v.scrollTop, touch: true };
+    return;
+  }
+  // โหมดวัด: กดปากกา/นิ้วลง = ปักหมุดทันที
+  pan = null;
+  const n0 = S.draft ? S.draft.pts.length : 0;
+  addPoint(ortho(pagePt(e), e), 6);
+  tap.added = !!S.draft && S.draft.pts.length > n0;
 }
 const ptAt = (x, y) => { const r = $('#overlay').getBoundingClientRect(); return [(x - r.left) / S.zoom, (y - r.top) / S.zoom]; };
 function onPointerMove(e) {
@@ -544,6 +553,13 @@ function onPointerMove(e) {
   if (pan && tap && tap.moved) {
     const v = $('#viewer');
     v.scrollLeft = pan.sl - (e.clientX - pan.x); v.scrollTop = pan.st - (e.clientY - pan.y);
+    return;
+  }
+  // โหมดวัด: ระหว่างลาก เส้นจะวิ่งตามปากกา พร้อมแสดงค่า
+  if (tap && S.draft && S.tool !== 'count') {
+    S.cursor = ortho(pagePt(e), e);
+    drawOverlay();
+    if (S.tool !== 'calibrate') $('#stHint').textContent = `${TYPE_TH[S.tool]}: ${valText({ ...S.draft, pts: [...S.draft.pts, S.cursor] })}`;
   }
 }
 function onPointerUp(e) {
@@ -553,16 +569,13 @@ function onPointerUp(e) {
   pan = null;
   // iPad มักส่ง pointercancel แทน pointerup เมื่อกดปากกาค้างไว้ (ระบบคิดว่าเป็นท่าค้าง) จึงถือเป็นการปล่อยด้วย
   const released = e.type === 'pointerup' || e.type === 'pointercancel';
-  if (released && tap && S.tool !== 'select' && tap.moved) {
-    // ลากนิ้ว/ปากกา = วาดเส้นจากจุดเริ่มถึงจุดสิ้นสุด (ตั้งสเกล ความยาว ระยะต่อเนื่อง พื้นที่)
-    const a = ptAt(tap.x, tap.y), b = ortho(pagePt(e), e);
-    if (!S.draft || !S.draft.pts.length) addPoint(a, 0);
-    addPoint(b, 0);
-  } else if (released && tap && !tap.moved) {
-    const p = pagePt(e);
-    if (S.tool === 'select') {
-      S.selId = hitTest(p, true); drawOverlay(); renderMeasList(); S.selId && scrollToMeas(S.selId);
-    } else addPoint(ortho(p, e), 12);
+  if (released && tap && S.tool !== 'select') {
+    // ปล่อยปากกาหลังลาก = ปักหมุดที่สอง (ตั้งสเกล/ความยาว จะจบและถามระยะจริงทันที)
+    // ถ้าแค่แตะ (ไม่ได้ลาก) หมุดถูกปักไปแล้วตอนกดลง — แตะจุดถัดไปได้เลย
+    if (tap.moved && S.tool !== 'count') addPoint(ortho(pagePt(e), e), 6);
+    S.cursor = null; drawOverlay();
+  } else if (released && tap && !tap.moved && S.tool === 'select') {
+    S.selId = hitTest(pagePt(e), true); drawOverlay(); renderMeasList(); S.selId && scrollToMeas(S.selId);
   }
   tap = null;
 }
