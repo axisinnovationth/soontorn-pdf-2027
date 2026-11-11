@@ -9,7 +9,7 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const { PDFDocument, degrees } = PDFLib;
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
 
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.1.1';
 const PT_M = 0.0254 / 72;               // 1 point = 0.3528 มม. บนกระดาษ
 const DEFAULT_RATIO = 100;               // ถ้ายังไม่ตั้งสเกล ใช้ 1:100
 const TYPE_TH = { length: 'ความยาว', polyline: 'ระยะต่อเนื่อง', area: 'พื้นที่', count: 'นับจำนวน', calibrate: 'ตั้งสเกล' };
@@ -165,6 +165,7 @@ async function reloadFile(f, bytes) {
   f.doc = await loadDoc(bytes);
   f.numPages = f.doc.numPages;
   old && old.destroy();
+  $('#pdfCanvas').dataset.key = '';   // บังคับวาดหน้าใหม่
 }
 async function openFiles(list) {
   const pdfs = [...list].filter(x => /\.pdf$/i.test(x.name) || x.type === 'application/pdf');
@@ -235,16 +236,25 @@ function fitZoom() {
   const v = $('#viewer');
   return Math.max(0.05, Math.min((v.clientWidth - 48) / S.pageW, (v.clientHeight - 48) / S.pageH));
 }
-function sizeCanvases() {
+// ขีดจำกัดหน่วยความจำของ canvas — iPad/Safari ปิดหน้าเว็บทิ้งถ้า canvas ใหญ่เกิน
+const MAX_ZOOM = IS_IOS ? 6 : 8;
+const PDF_MAX_PX = IS_IOS ? 6e6 : 24e6;      // ภาพหน้าแบบ
+const OV_MAX_PX = IS_IOS ? 3e6 : 12e6;       // ชั้นเส้นวัด
+const capScale = (want, maxPx) => Math.min(want, Math.sqrt(maxPx / (S.pageW * S.pageH)));
+// cssOnly = true ระหว่างถ่าง/หุบนิ้ว: เปลี่ยนแค่ขนาดที่แสดง ไม่จองหน่วยความจำใหม่ทุกครั้งที่นิ้วขยับ
+function sizeCanvases(cssOnly) {
   const dpr = window.devicePixelRatio || 1;
   const w = S.pageW * S.zoom, h = S.pageH * S.zoom;
   const wrap = $('#pageWrap');
   wrap.style.width = w + 'px'; wrap.style.height = h + 'px';
   for (const c of [$('#pdfCanvas'), $('#overlay')]) { c.style.width = w + 'px'; c.style.height = h + 'px'; }
-  const ov = $('#overlay');
-  ov.width = Math.round(w * dpr); ov.height = Math.round(h * dpr);
   $('#zoomLbl').textContent = Math.round(S.zoom * 100) + '%';
+  if (cssOnly) return;
+  const ov = $('#overlay'), k = capScale(S.zoom * dpr, OV_MAX_PX);
+  const ow = Math.max(1, Math.round(S.pageW * k)), oh = Math.max(1, Math.round(S.pageH * k));
+  if (ov.width !== ow || ov.height !== oh) { ov.width = ow; ov.height = oh; }
 }
+let offCanvas = null;   // ใช้ซ้ำ ไม่สร้างใหม่ทุกครั้ง
 async function renderPage() {
   const f = active();
   $('#pageTotal').textContent = '/ ' + (f ? f.numPages : 0);
@@ -258,19 +268,22 @@ async function renderPage() {
   if (S.fit) S.zoom = fitZoom();
   sizeCanvases(); drawOverlay();
   const dpr = window.devicePixelRatio || 1;
-  let scale = S.zoom * dpr;
-  const maxPx = IS_IOS ? 9e6 : 24e6;   // iPad จำกัดขนาด canvas
-  if (S.pageW * S.pageH * scale * scale > maxPx) scale = Math.sqrt(maxPx / (S.pageW * S.pageH));
+  const scale = capScale(S.zoom * dpr, PDF_MAX_PX);
   const vp = page.getViewport({ scale });
-  const off = document.createElement('canvas');
-  off.width = Math.floor(vp.width); off.height = Math.floor(vp.height);
+  const c = $('#pdfCanvas');
+  const W = Math.floor(vp.width), Hh = Math.floor(vp.height);
+  // ถ้าความละเอียดเท่าเดิม (เช่นซูมเกินขีดจำกัดแล้ว) ไม่ต้องวาดใหม่
+  if (c.width === W && c.height === Hh && c.dataset.key === `${f.id}:${S.page}`) return;
   if (renderTask) { try { renderTask.cancel(); } catch (_) {} }
+  const off = offCanvas || (offCanvas = document.createElement('canvas'));
+  off.width = W; off.height = Hh;
   renderTask = page.render({ canvasContext: off.getContext('2d'), viewport: vp });
   try { await renderTask.promise; } catch (e) { if (e && e.name === 'RenderingCancelledException') return; console.error(e); return; }
   if (token !== renderToken) return;
-  const c = $('#pdfCanvas');
-  c.width = off.width; c.height = off.height;
+  if (c.width !== W || c.height !== Hh) { c.width = W; c.height = Hh; }
   c.getContext('2d').drawImage(off, 0, 0);
+  c.dataset.key = `${f.id}:${S.page}`;
+  if (IS_IOS) { off.width = 1; off.height = 1; }   // คืนหน่วยความจำทันที
   $$('.thumb').forEach(t => t.classList.toggle('active', +t.dataset.p === S.page));
 }
 function goPage(n) {
@@ -284,17 +297,18 @@ function goPage(n) {
 function setZoom(z, cx, cy) {
   if (!active()) return;
   const v = $('#viewer');
-  z = Math.max(0.05, Math.min(8, z));
+  z = Math.max(0.05, Math.min(MAX_ZOOM, z));
   const wrap = $('#pageWrap').getBoundingClientRect();
   const vr = v.getBoundingClientRect();
   if (cx == null) { cx = vr.left + vr.width / 2; cy = vr.top + vr.height / 2; }
   const px = (cx - wrap.left) / S.zoom, py = (cy - wrap.top) / S.zoom;
   S.fit = false; S.zoom = z;
-  sizeCanvases(); drawOverlay();
+  sizeCanvases(true);   // ระหว่างซูม: แค่ยืดภาพเดิม
   const nw = $('#pageWrap').getBoundingClientRect();
   v.scrollLeft += (nw.left + px * z) - cx;
   v.scrollTop += (nw.top + py * z) - cy;
-  clearTimeout(setZoom._t); setZoom._t = setTimeout(renderPage, 120);
+  clearTimeout(setZoom._t);
+  setZoom._t = setTimeout(() => { sizeCanvases(); drawOverlay(); renderPage(); }, pinch ? 250 : 120);
 }
 
 /* ---------- ภาพย่อหน้า ---------- */
