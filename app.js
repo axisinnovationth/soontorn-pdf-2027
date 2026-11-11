@@ -9,7 +9,7 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const { PDFDocument, degrees } = PDFLib;
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
 
-const APP_VERSION = '1.1.3';
+const APP_VERSION = '1.1.4';
 const PT_M = 0.0254 / 72;               // 1 point = 0.3528 มม. บนกระดาษ
 const DEFAULT_RATIO = 100;               // ถ้ายังไม่ตั้งสเกล ใช้ 1:100
 const TYPE_TH = { length: 'ความยาว', polyline: 'ระยะต่อเนื่อง', area: 'พื้นที่', count: 'นับจำนวน', calibrate: 'ตั้งสเกล' };
@@ -551,12 +551,14 @@ function onPointerUp(e) {
   touchPts.delete(e.pointerId);
   if (pinch) { if (touchPts.size < 2) pinch = null; tap = null; pan = null; return; }
   pan = null;
-  if (e.type === 'pointerup' && tap && S.tool !== 'select' && tap.moved) {
-    // ลากนิ้ว = วาดเส้นจากจุดเริ่มถึงจุดสิ้นสุด (ใช้กับตั้งสเกล ความยาว ระยะต่อเนื่อง พื้นที่)
+  // iPad มักส่ง pointercancel แทน pointerup เมื่อกดปากกาค้างไว้ (ระบบคิดว่าเป็นท่าค้าง) จึงถือเป็นการปล่อยด้วย
+  const released = e.type === 'pointerup' || e.type === 'pointercancel';
+  if (released && tap && S.tool !== 'select' && tap.moved) {
+    // ลากนิ้ว/ปากกา = วาดเส้นจากจุดเริ่มถึงจุดสิ้นสุด (ตั้งสเกล ความยาว ระยะต่อเนื่อง พื้นที่)
     const a = ptAt(tap.x, tap.y), b = ortho(pagePt(e), e);
     if (!S.draft || !S.draft.pts.length) addPoint(a, 0);
     addPoint(b, 0);
-  } else if (e.type === 'pointerup' && tap && !tap.moved) {
+  } else if (released && tap && !tap.moved) {
     const p = pagePt(e);
     if (S.tool === 'select') {
       S.selId = hitTest(p, true); drawOverlay(); renderMeasList(); S.selId && scrollToMeas(S.selId);
@@ -1189,6 +1191,8 @@ window.__openFromShell = async list => {
   setTool('select');
   $('#stHint').textContent = 'เปิดไฟล์ PDF เพื่อเริ่มงาน';
   if (IS_TOUCH) document.body.classList.add('touch');
+  // กันเมนูค้าง/การเลือกข้อความเมื่อกดปากกาค้างบนแบบ
+  if (IS_TOUCH) document.addEventListener('selectstart', e => { if (e.target.closest && e.target.closest('#viewer')) e.preventDefault(); });
   // บนจอสัมผัส ซ่อนแผงข้างไว้ก่อน ให้แบบได้พื้นที่เต็ม (กดปุ่มด้านบนเพื่อเปิด)
   if (IS_TOUCH && window.innerWidth > 900) document.body.classList.add('left-closed', 'right-closed');
   refreshAll();
