@@ -1,5 +1,5 @@
 {
-  "version": "1.1.1",
-  "notes": "แก้ปัญหาโปรแกรมหลุดเมื่อซูมแบบขนาดใหญ่บน iPad",
+  "version": "1.1.2",
+  "notes": "ซ่อนแผงข้างอัตโนมัติบน iPad ให้แบบใหญ่ขึ้น มีปุ่มเปิดแผงขวา",
   "download": "https://axisinnovationth.github.io/soontorn-pdf-2027/download/SOONTORN-PDF-2027-Setup.exe"
 }

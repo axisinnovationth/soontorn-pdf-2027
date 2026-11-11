@@ -1,5 +1,5 @@
 /* SOONTORN-PDF-2027 — เก็บไฟล์โปรแกรมไว้ในเครื่อง เพื่อใช้งานแบบออฟไลน์ */
-const VERSION = 'spdf-2027-v5';
+const VERSION = 'spdf-2027-v6';
 const FILES = [
   './',
   'index.html', 'app.js', 'viewer3d.js', 'print.js', 'styles.css', 'manifest.webmanifest',

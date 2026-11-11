@@ -9,7 +9,7 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const { PDFDocument, degrees } = PDFLib;
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
 
-const APP_VERSION = '1.1.1';
+const APP_VERSION = '1.1.2';
 const PT_M = 0.0254 / 72;               // 1 point = 0.3528 มม. บนกระดาษ
 const DEFAULT_RATIO = 100;               // ถ้ายังไม่ตั้งสเกล ใช้ 1:100
 const TYPE_TH = { length: 'ความยาว', polyline: 'ระยะต่อเนื่อง', area: 'พื้นที่', count: 'นับจำนวน', calibrate: 'ตั้งสเกล' };
@@ -55,6 +55,7 @@ const ICONS = {
   cube: '<path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/>',
   theme: '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>',
   chevUp: '<path d="M6 15l6-6 6 6"/>',
+  panel: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/>',
   up: '<path d="M6 15l6-6 6 6"/>',
   down: '<path d="M6 9l6 6 6-6"/>',
   check: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 12l3 3 5-6"/>',
@@ -984,6 +985,7 @@ const ACTIONS = {
   combine, deletePage, rotatePage,
   exportExcel, exportWord, report: exportReport,
   zoomIn: () => setZoom(S.zoom * 1.25),
+  togglePanel: () => $('#btnRight').click(),
   zoomOut: () => setZoom(S.zoom / 1.25),
   fitPage: () => { S.fit = true; renderPage(); },
   prev: () => goPage(S.page - 1),
@@ -1125,10 +1127,16 @@ function bind() {
   });
 
   // แถบด้านบน
+  const relayout = () => setTimeout(() => { if (S.fit) renderPage(); window.V3D && window.V3D.resize(); }, 280);
   $('#btnMenu').onclick = () => {
     if (window.innerWidth <= 900) document.body.classList.toggle('menu-open-sm');
-    else document.body.classList.toggle('menu-closed');
-    setTimeout(() => { if (S.fit) renderPage(); window.V3D && window.V3D.resize(); }, 280);
+    else document.body.classList.toggle('left-closed');
+    relayout();
+  };
+  $('#btnRight').onclick = () => {
+    if (window.innerWidth <= 900) document.body.classList.toggle('right-open-sm');
+    else document.body.classList.toggle('right-closed');
+    relayout();
   };
   $('#btnRibbon').onclick = () => {
     document.body.classList.toggle('ribbon-compact');
@@ -1169,6 +1177,8 @@ window.__openFromShell = async list => {
   setTool('select');
   $('#stHint').textContent = 'เปิดไฟล์ PDF เพื่อเริ่มงาน';
   if (IS_TOUCH) document.body.classList.add('touch');
+  // บนจอสัมผัส ซ่อนแผงข้างไว้ก่อน ให้แบบได้พื้นที่เต็ม (กดปุ่มด้านบนเพื่อเปิด)
+  if (IS_TOUCH && window.innerWidth > 900) document.body.classList.add('left-closed', 'right-closed');
   refreshAll();
   splash();
   // ทำงานออฟไลน์ได้ (เมื่อเปิดผ่านเว็บ https เช่นบน iPad)
