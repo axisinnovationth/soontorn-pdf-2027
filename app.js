@@ -9,7 +9,7 @@ const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const { PDFDocument, degrees } = PDFLib;
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
 
-const APP_VERSION = '1.1.2';
+const APP_VERSION = '1.1.3';
 const PT_M = 0.0254 / 72;               // 1 point = 0.3528 มม. บนกระดาษ
 const DEFAULT_RATIO = 100;               // ถ้ายังไม่ตั้งสเกล ใช้ 1:100
 const TYPE_TH = { length: 'ความยาว', polyline: 'ระยะต่อเนื่อง', area: 'พื้นที่', count: 'นับจำนวน', calibrate: 'ตั้งสเกล' };
@@ -516,21 +516,28 @@ function onPointerDown(e) {
   try { $('#overlay').setPointerCapture(e.pointerId); } catch (_) {}
   touchPts.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (touchPts.size === 2) {
+    // สองนิ้ว = ย่อ/ขยาย และเลื่อนหน้าไปพร้อมกัน
     const [a, b] = [...touchPts.values()];
-    pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: S.zoom };
+    pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: S.zoom, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
     tap = null; pan = null; return;
   }
   if (touchPts.size > 2) return;
   const v = $('#viewer');
   tap = { x: e.clientX, y: e.clientY, moved: false };
-  pan = { x: e.clientX, y: e.clientY, sl: v.scrollLeft, st: v.scrollTop, touch: true };
+  // โหมดวัด: นิ้วเดียวลากได้เลย (ลากเป็นเส้น) ส่วนโหมดเลือก: นิ้วเดียวลากเพื่อเลื่อนหน้า
+  pan = S.tool === 'select' ? { x: e.clientX, y: e.clientY, sl: v.scrollLeft, st: v.scrollTop, touch: true } : null;
 }
+const ptAt = (x, y) => { const r = $('#overlay').getBoundingClientRect(); return [(x - r.left) / S.zoom, (y - r.top) / S.zoom]; };
 function onPointerMove(e) {
   if (e.pointerType === 'mouse' || !touchPts.has(e.pointerId)) return;
   touchPts.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (pinch && touchPts.size >= 2) {
     const [a, b] = [...touchPts.values()];
-    setZoom(pinch.z * Math.hypot(a.x - b.x, a.y - b.y) / pinch.d, (a.x + b.x) / 2, (a.y + b.y) / 2);
+    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    setZoom(pinch.z * Math.hypot(a.x - b.x, a.y - b.y) / pinch.d, mx, my);
+    const v = $('#viewer');
+    v.scrollLeft -= mx - pinch.mx; v.scrollTop -= my - pinch.my;   // เลื่อนตามการขยับของสองนิ้ว
+    pinch.mx = mx; pinch.my = my;
     return;
   }
   if (tap && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 10) tap.moved = true;
@@ -544,7 +551,12 @@ function onPointerUp(e) {
   touchPts.delete(e.pointerId);
   if (pinch) { if (touchPts.size < 2) pinch = null; tap = null; pan = null; return; }
   pan = null;
-  if (e.type === 'pointerup' && tap && !tap.moved) {
+  if (e.type === 'pointerup' && tap && S.tool !== 'select' && tap.moved) {
+    // ลากนิ้ว = วาดเส้นจากจุดเริ่มถึงจุดสิ้นสุด (ใช้กับตั้งสเกล ความยาว ระยะต่อเนื่อง พื้นที่)
+    const a = ptAt(tap.x, tap.y), b = ortho(pagePt(e), e);
+    if (!S.draft || !S.draft.pts.length) addPoint(a, 0);
+    addPoint(b, 0);
+  } else if (e.type === 'pointerup' && tap && !tap.moved) {
     const p = pagePt(e);
     if (S.tool === 'select') {
       S.selId = hitTest(p, true); drawOverlay(); renderMeasList(); S.selId && scrollToMeas(S.selId);
