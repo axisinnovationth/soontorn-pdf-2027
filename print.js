@@ -196,10 +196,13 @@ async function printBytes(bytes, paper, land) {
   const area = $('#printArea'); area.innerHTML = '';
   const doc = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
   const dpi = doc.numPages > 20 ? 120 : paper === 'A3' ? 160 : 200;
-  const [mw, mh] = PAPER_MM[paper], W = land ? mh : mw, H = land ? mw : mh;
+  // ส่งเป็นกระดาษแนวตั้งเสมอ: หน้าแนวนอนจะหมุน 90° ให้เอง
+  // (บางเครื่องปริ้นไม่สนใจการตั้งแนวกระดาษจากโปรแกรม จึงหมุนเองเพื่อให้ออกถูกทุกเครื่อง)
+  const [W, H] = PAPER_MM[paper];
   for (let p = 1; p <= doc.numPages; p++) {
     $('#busyMsg').textContent = `กำลังเตรียมหน้าพิมพ์ ${p}/${doc.numPages}...`;
-    const page = await doc.getPage(p), vp = page.getViewport({ scale: dpi / 72 });
+    const page = await doc.getPage(p);
+    const vp = page.getViewport({ scale: dpi / 72, rotation: land ? 90 : 0 });
     const c = document.createElement('canvas'); c.width = Math.round(vp.width); c.height = Math.round(vp.height);
     const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
     await page.render({ canvasContext: g, viewport: vp }).promise;
@@ -211,7 +214,7 @@ async function printBytes(bytes, paper, land) {
   doc.destroy();
   let st = $('#printPageStyle');
   if (!st) { st = document.createElement('style'); st.id = 'printPageStyle'; document.head.appendChild(st); }
-  st.textContent = `@page { size: ${paper} ${land ? 'landscape' : 'portrait'}; margin: 0; }`;
+  st.textContent = `@page { size: ${paper} portrait; margin: 0; }`;
   busy(false);
   const cleanup = () => { $$('#printArea img').forEach(i => URL.revokeObjectURL(i.src)); area.innerHTML = ''; };
   window.addEventListener('afterprint', cleanup, { once: true });
